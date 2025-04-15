@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const ChordWheel = () => {
-  const [rotation, setRotation] = useState(0);
+  // Definir a rotação inicial para posicionar a roda como na imagem de referência
+  const [rotation, setRotation] = useState(90);
   const [isDragging, setIsDragging] = useState(false);
   const [startAngle, setStartAngle] = useState(0);
   const coverRef = useRef(null);
@@ -56,8 +57,19 @@ const ChordWheel = () => {
     setRotation(newRotation);
   };
 
+  // Adicionar função de snap
+  const snapToNearestNote = () => {
+    // Calculamos o ângulo mais próximo que é múltiplo de 30 (cada nota na roda)
+    const normalizedRotation = ((rotation % 360) + 360) % 360; // Normalizar para 0-360
+    const snapAngle = Math.round(normalizedRotation / 30) * 30;
+    
+    // Aplicar a animação de transição para a posição de snap
+    setRotation(snapAngle);
+  };
+  
   const handleMouseUp = () => {
     setIsDragging(false);
+    snapToNearestNote();
   };
 
   // Adicionar e remover event listeners
@@ -65,15 +77,21 @@ const ChordWheel = () => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleMouseUp);
+    document.addEventListener('touchend', handleTouchEnd);
     
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleMouseUp);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   });
+  
+  // Manipuladores de eventos para dispositivos touch
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    snapToNearestNote();
+  };
 
   // Manipuladores de eventos para dispositivos touch
   const handleTouchStart = (e) => {
@@ -184,37 +202,6 @@ const ChordWheel = () => {
             {/* Círculo central preto com números */}
             <circle cx="100" cy="100" r="25" fill="black" stroke="white" strokeWidth="1" />
             
-            {/* Números dos graus no círculo central */}
-            {/* {[0, 1, 2, 3, 4, 5, 6].map((num, i) => {
-              // Posicionamento dos números em volta do círculo central
-              // Começando de cima (0) e seguindo em sentido horário
-              const angle = ((i * 60) - 90) * Math.PI / 180;
-              const r = 18;
-              
-              return (
-                <g key={`num-${i}`}>
-                  <circle 
-                    cx={100 + r * Math.cos(angle)} 
-                    cy={100 + r * Math.sin(angle)} 
-                    r="5" 
-                    fill="black" 
-                    stroke="white" 
-                    strokeWidth="0.5" 
-                  />
-                  <text 
-                    x={100 + r * Math.cos(angle)} 
-                    y={100 + r * Math.sin(angle)} 
-                    fill="white" 
-                    fontSize="8"
-                    textAnchor="middle" 
-                    dominantBaseline="middle"
-                  >
-                    {num}
-                  </text>
-                </g>
-              );
-            })} */}
-            
             {/* Texto para acordes maiores */}
             {chords.map((chord, index) => {
               const angle = (index * 30 + 15 - 90) * Math.PI / 180;
@@ -267,14 +254,68 @@ const ChordWheel = () => {
         <div 
           ref={coverRef}
           className="absolute top-0 left-0 w-full h-full cursor-pointer"
-          style={{ transform: `rotate(${rotation}deg)` }}
+          style={{ 
+            transform: `rotate(${rotation}deg)`,
+            transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+          }}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
         >
           <svg viewBox="0 0 200 200" className="w-full h-full">
-            {/* Parte preta cobrindo 3/4 da roda */}
+            {/* Segmentos pretos cobrindo a roda, exceto posições 0, 10, 11 (juntas) e 4 (separada) */}
+            
+            {/* Posição 1 */}
             <path 
-              d="M100,100 L200,100 A100,100 0 1,1 100,0 L100,100 Z" 
+              d="M100,100 L150,13.4 A100,100 0 0,1 186.6,50 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 2 */}
+            <path 
+              d="M100,100 L186.6,50 A100,100 0 0,1 200,100 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 3 */}
+            <path 
+              d="M100,100 L200,100 A100,100 0 0,1 186.6,150 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 5 */}
+            <path 
+              d="M100,100 L150,186.6 A100,100 0 0,1 100,200 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 6 */}
+            <path 
+              d="M100,100 L100,200 A100,100 0 0,1 50,186.6 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 7 */}
+            <path 
+              d="M100,100 L50,186.6 A100,100 0 0,1 13.4,150 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 8 */}
+            <path 
+              d="M100,100 L13.4,150 A100,100 0 0,1 0,100 L100,100 Z" 
+              fill="#222"
+              opacity="0.85"
+            />
+            
+            {/* Posição 9 */}
+            <path 
+              d="M100,100 L0,100 A100,100 0 0,1 13.4,50 L100,100 Z" 
               fill="#222"
               opacity="0.85"
             />
@@ -301,36 +342,33 @@ const ChordWheel = () => {
               );
             })}
             
-            {/* Graus na capa - ajustados para o círculo de quintas */}
-            {/* {[1, 4, 7, 3, 6, 2, 5].map((num, i) => {
-              // Posicionamento correto para o círculo de quintas
-              // Seguindo a ordem C(1°), F(4°), Bb(7°), Eb(3°), Ab(6°), Db(2°), Gb(5°)
-              const offset = -90;
-              const angle = (i * 30) + offset;
-              const radians = angle * Math.PI / 180;
-              const x = 100 + 80 * Math.cos(radians);
-              const y = 100 + 80 * Math.sin(radians);
-              
-              return (
-                <text 
-                  key={num}
-                  x={x} 
-                  y={y} 
-                  fill="white" 
-                  fontSize="12"
-                  fontWeight="bold"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
-                  {num}°
-                </text>
-              );
-            })} */}
-            
-            {/* Janela de visualização na parte inferior direita */}
+            {/* Janelas transparentes nas posições agrupadas 0, 10, 11 */}
             <path 
-              d="M100,100 L200,100 A100,100 0 0,0 100,200 L100,100 Z" 
+              d="M100,100 L100,0 A100,100 0 0,1 150,13.4 L100,100 Z" 
               fill="transparent"
+            />
+            
+            <path 
+              d="M100,100 L13.4,50 A100,100 0 0,1 50,13.4 L100,100 Z" 
+              fill="transparent"
+            />
+            
+            <path 
+              d="M100,100 L50,13.4 A100,100 0 0,1 100,0 L100,100 Z" 
+              fill="transparent"
+            />
+            
+            {/* Janela transparente na posição 4 (separada) - apenas o acorde maior, sem o menor */}
+            <path 
+              d="M100,100 L186.6,150 A100,100 0 0,1 150,186.6 L100,100 Z" 
+              fill="transparent"
+            />
+            
+            {/* Cobertura preta para o acorde menor na janela separada */}
+            <path 
+              d="M100,100 L151.96,130 A60,60 0 0,1 130,151.96 Z" 
+              fill="#222"
+              opacity="0.85"
             />
           </svg>
         </div>
