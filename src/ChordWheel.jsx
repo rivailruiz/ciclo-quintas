@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const ChordWheel = () => {
-  // Definir a rotação inicial para posicionar a roda como na imagem de referência
-  const [rotation, setRotation] = useState(90);
+  // Começamos na posição 3 (equivalente a 90 graus de rotação)
+  const [position, setPosition] = useState(3);
   const [isDragging, setIsDragging] = useState(false);
-  const [startAngle, setStartAngle] = useState(0);
   const coverRef = useRef(null);
   const containerRef = useRef(null);
+  
+  // Converter posição (0-11) para ângulo de rotação (em graus)
+  const rotation = position * 30;
 
   // Dados dos acordes da roda com cores correspondentes
   const chords = [
@@ -23,56 +25,84 @@ const ChordWheel = () => {
     { major: 'Bb', minor: 'Gm', color: '#8A5E97' }, // Roxo
     { major: 'F', minor: 'Dm', color: '#9A4D88' }, // Magenta-roxo
   ];
-
-  // Função para calcular o ângulo entre dois pontos
-  const getAngle = (cx, cy, px, py) => {
-    const x = px - cx;
-    const y = py - cy;
-    return Math.atan2(y, x) * 180 / Math.PI;
+  
+  // Funções simplificadas para navegação
+  const advanceTone = () => {
+    setPosition((prev) => (prev + 1) % 12);
+  };
+  
+  const reduceTone = () => {
+    setPosition((prev) => (prev - 1 + 12) % 12);
   };
 
-  // Manipuladores de eventos para arrastar a capa
-  const handleMouseDown = (e) => {
-    e.preventDefault();
+  // Manipulação do arrasto
+  const handleDragStart = (clientX, clientY) => {
     if (!coverRef.current || !containerRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
     setIsDragging(true);
-    setStartAngle(getAngle(centerX, centerY, e.clientX, e.clientY) - rotation);
   };
-
-  const handleMouseMove = (e) => {
+  
+  const handleDragMove = (clientX, clientY) => {
     if (!isDragging || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
-    const angle = getAngle(centerX, centerY, e.clientX, e.clientY);
-    const newRotation = angle - startAngle;
+    // Calcular o ângulo entre o ponto central e o cursor
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     
-    setRotation(newRotation);
-  };
-
-  // Adicionar função de snap
-  const snapToNearestNote = () => {
-    // Calculamos o ângulo mais próximo que é múltiplo de 30 (cada nota na roda)
-    const normalizedRotation = ((rotation % 360) + 360) % 360; // Normalizar para 0-360
-    const snapAngle = Math.round(normalizedRotation / 30) * 30;
+    // Converter o ângulo (-180 a 180) para uma posição (0-11)
+    // Primeiro normalizamos para 0-360
+    const normalizedAngle = ((angle + 180) % 360);
+    // Depois convertemos para posição (inverter direção para girar como esperado)
+    const newPosition = Math.round(normalizedAngle / 30) % 12;
+    const adjustedPosition = (12 - newPosition) % 12;
     
-    // Aplicar a animação de transição para a posição de snap
-    setRotation(snapAngle);
+    setPosition(adjustedPosition);
   };
   
-  const handleMouseUp = () => {
+  const handleDragEnd = () => {
     setIsDragging(false);
-    snapToNearestNote();
   };
 
-  // Adicionar e remover event listeners
+  // Mouse events
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    handleDragStart(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      handleDragMove(e.clientX, e.clientY);
+    }
+  };
+
+  const handleMouseUp = () => {
+    handleDragEnd();
+  };
+
+  // Touch events
+  const handleTouchStart = (e) => {
+    if (e.touches.length > 0) {
+      handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (isDragging && e.touches.length > 0) {
+      e.preventDefault();
+      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
+  // Add and remove event listeners
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -86,56 +116,22 @@ const ChordWheel = () => {
       document.removeEventListener('touchend', handleTouchEnd);
     };
   });
-  
-  // Manipuladores de eventos para dispositivos touch
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    snapToNearestNote();
-  };
-
-  // Manipuladores de eventos para dispositivos touch
-  const handleTouchStart = (e) => {
-    if (!coverRef.current || !containerRef.current) return;
-    
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    setIsDragging(true);
-    setStartAngle(getAngle(centerX, centerY, touch.clientX, touch.clientY) - rotation);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging || !containerRef.current) return;
-    e.preventDefault();
-    
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const angle = getAngle(centerX, centerY, touch.clientX, touch.clientY);
-    const newRotation = angle - startAngle;
-    
-    setRotation(newRotation);
-  };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full p-4">
-      <div className="text-center mb-4">
-        <h2 className="text-2xl font-bold mb-2">Roda de Acordes</h2>
-        <p className="text-lg">Arraste a capa para revelar diferentes acordes</p>
+    <div className="flex flex-col items-center justify-start h-full w-full p-2 pt-0">
+      <div className="text-center mb-2">
+        <h2 className="text-xl font-bold mb-1">Roda de Acordes</h2>
+        <p className="text-sm mb-5">Arraste a capa para revelar diferentes acordes</p>
       </div>
       
       <div 
-        className="relative w-72 h-72 md:w-96 md:h-96 select-none" 
+        className="relative w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square select-none" 
         ref={containerRef}
       >
         {/* Roda de acordes - camada inferior */}
-        <div className="absolute top-0 left-0 w-full h-full rounded-full border-2 border-gray-400">
+        <div className="absolute top-0 left-0 w-full h-full rounded-full border-2 border-gray-400 overflow-hidden shadow-lg mb-10">
           {/* Segmentos de acordes com cores */}
-          <svg viewBox="0 0 200 200" className="w-full h-full">
+          <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-md">
             {/* Círculo externo com segmentos coloridos para acordes maiores */}
             {chords.map((chord, index) => {
               const startAngle = index * 30;
@@ -219,6 +215,7 @@ const ChordWheel = () => {
                   fontWeight="bold"
                   textAnchor="middle"
                   dominantBaseline="middle"
+                  style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}
                 >
                   {chord.major}
                 </text>
@@ -358,7 +355,7 @@ const ChordWheel = () => {
               fill="transparent"
             />
             
-            {/* Janela transparente na posição 4 (separada) - apenas o acorde maior, sem o menor */}
+            {/* Janela transparente na posição 4 (separada) - apenas o acorde maior */}
             <path 
               d="M100,100 L186.6,150 A100,100 0 0,1 150,186.6 L100,100 Z" 
               fill="transparent"
@@ -372,6 +369,26 @@ const ChordWheel = () => {
             />
           </svg>
         </div>
+      </div>
+
+      <div className="mt-10"></div>
+      
+      {/* Botões de navegação */}
+      <div className="mt-10 flex justify-center gap-4">
+        <button 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full text-lg transition touch-manipulation w-20 h-12 flex items-center justify-center"
+          onClick={reduceTone}
+          type="button"
+        >
+          <span>-1</span>
+        </button>
+        <button 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full text-lg transition touch-manipulation w-20 h-12 flex items-center justify-center"
+          onClick={advanceTone}
+          type="button"
+        >
+          <span>+1</span>
+        </button>
       </div>
     </div>
   );
