@@ -119,9 +119,6 @@ const ChordWheel = () => {
 
   return (
     <div className="flex flex-col items-center justify-start h-full w-full p-2 pt-0">
-      <div className="text-center mb-2">
-        <h2 className="text-xl font-bold mb-1">Roda de Acordes</h2>
-      </div>
       
       <div 
         className="relative w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square select-none" 
