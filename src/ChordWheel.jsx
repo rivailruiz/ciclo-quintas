@@ -121,7 +121,6 @@ const ChordWheel = () => {
     <div className="flex flex-col items-center justify-start h-full w-full p-2 pt-0">
       <div className="text-center mb-2">
         <h2 className="text-xl font-bold mb-1">Roda de Acordes</h2>
-        <p className="text-sm mb-5">Arraste a capa para revelar diferentes acordes</p>
       </div>
       
       <div 
